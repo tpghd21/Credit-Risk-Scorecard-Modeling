@@ -10,7 +10,7 @@ A key finding of this project was that the traditional Logistic Regression model
 **Key Achievements:**
 * **Strategic Feature Engineering:** Applied WOE Binning to ensure **monotonic relationships** between independent variables and the default rate, maximizing the performance of the linear model.
 * **Scorecard Development:** Converted model probability outputs into a transparent point-based system.
-* **Rigorous Selection:** Manually excluded variables with suspiciously high Information Value (IV) to prevent data leakage.
+* **Rigorous Selection:** Excluded variables with suspiciously high Information Value (IV) to prevent data leakage and exclude variables with low Information Value (IV).
 * **Model Comparison:** Proved that a well-engineered linear model can outperform complex ensemble methods in credit scoring contexts.
 
 ---
