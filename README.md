@@ -1,90 +1,151 @@
-# German Credit Risk Modeling: Scorecard vs XGBoost
+# Credit Risk PD Modeling & Validation
 
+This repository presents an **end-to-end Probability of Default (PD) modeling workflow** in a
+**credit risk / scorecard setting**, covering:
 
-## Executive Summary
+- credit fundamentals and EDA,
+- WOE / IV–based feature engineering,
+- PD modeling with Logistic Regression and XGBoost,
+- calibration, stability, and validation beyond AUC.
 
-This project implements a comprehensive **Credit Risk Modeling** framework using the German Credit Dataset. The primary objective was to build a regulatory-compliant **Credit Scorecard** (based on Logistic Regression) while benchmarking it against a modern machine learning model (**XGBoost**).
+The focus is not on algorithmic novelty, but on **model interpretability, probability quality,
+and validation practices aligned with real-world credit risk modeling**.
 
-A key finding of this project was that the traditional Logistic Regression model outperformed the complex XGBoost model. This is not merely due to the small dataset size, but primarily because **WOE (Weight of Evidence) Binning successfully transformed non-linear features into monotonic trends**, allowing the linear model to capture the signal effectively and robustly.
+This repository is organized into three main notebooks, each corresponding to a stage
+of the credit risk modeling lifecycle:
 
-**Key Achievements:**
-* **Strategic Feature Engineering:** Applied WOE Binning to ensure **monotonic relationships** between independent variables and the default rate, maximizing the performance of the linear model.
-* **Scorecard Development:** Converted model probability outputs into a transparent point-based system.
-* **Rigorous Selection:** Excluded variables with suspiciously high Information Value (IV) to prevent data leakage and exclude variables with low Information Value (IV).
-* **Model Comparison:** Proved that a well-engineered linear model can outperform complex ensemble methods in credit scoring contexts.
+- `Credit_Fundamentals.ipynb`: credit fundamentals and exploratory analysis  
+- `PD_Modeling.ipynb`: WOE/IV-based PD modeling and model comparison  
+- `Model_Validation_Final.ipynb`: calibration, stability, and validation diagnostics  
+
+Recommended execution order:
+1. Credit_Fundamentals.ipynb  
+2. PD_Modeling.ipynb  
+3. Model_Validation_Final.ipynb
+---
+
+## Data
+Train–test splitting is performed using a stratified random split.
+No temporal or cohort-based split is applied in this experiment.
+
+- **Dataset**: German Credit Data (Statlog, UCI ML Repository)
+- **Target**: Binary default indicator
+- **Setting**: Consumer credit risk classification
 
 ---
 
-## Repository Structure
+## Workflow Overview
 
-The analysis is divided into two main notebooks to separate business understanding from technical modeling.
-
-| File Name | Description | Key Techniques |
-|:---|:---|:---|
-| **1. Credit_Fundamentals.ipynb** | **Risk Foundations & EDA**<br>Business domain analysis and deep exploratory data analysis. | • 3 Pillars (PD, LGD, EAD)<br>• Risk Segmentation<br>• Data Preprocessing |
-| **2. PD_Modelingg.ipynb** | **PD Modeling & Comparison**<br>Developing the Scorecard and benchmarking against XGBoost. | • WOE & IV Transformation<br>• **Logistic Regression (Champion)**<br>• **XGBoost (Benchmark)**<br>• **Optuna Hyperparameter Tuning** |
+1. Credit fundamentals and exploratory analysis  
+3. Model performance comparison using identical WOE-transformed feature sets
+3. Model performance comparison  
+4. Probability calibration and validation (Brier, ECE, PSI, anomaly analysis)
 
 ---
 
-## Methodology
+## Credit Fundamentals & Exploratory Analysis
 
-### 1. Feature Engineering (WOE & Monotonicity)
-The core strength of this project lies in the preprocessing stage using **Weight of Evidence (WOE)**.
-* **Monotonic Trends:** Instead of feeding raw data into the model, variables were binned (grouped). We ensured that the WOE values across these bins showed a **monotonic trend** (either strictly increasing or decreasing) with respect to the default rate.
-* **Linearization:** This process effectively "linearized" non-linear relationships, making them perfectly suitable for Logistic Regression.
+This section establishes the credit-risk context and data characteristics before modeling.
 
-### 2. Feature Selection
-* **IV Filter:** Variables with weak predictive power ($IV < 0.02$) were dropped.
-* **Manual Intervention:** One variable with an exceptionally high IV (> 0.5) was manually removed to prevent data leakage and overfitting.
-
-### 3. Scorecard Mechanics & Example
-The final output of the Logistic Regression (Log-odds) was scaled into a user-friendly score.
-* **Scaling Parameters:**
-    * Base Points: 600
-    * Odds: 1:19
-    * PDO (Points to Double the Odds): 50
-
-#### How the Score is Calculated (Example)
-The final credit score is the sum of the **Base Score** and the points assigned to each attribute.
-
-| Attribute | Value (Customer A) | Points Assigned |
-|:---|:---|:---:|
-| **Base Score** | - | **600** |
-| Account Status | No Checking Account | +55 |
-| Duration | 12 Months (Short Term) | +20 |
-| Credit History | Existing Credits Paid Back | +10 |
-| Purpose | New Car | -15 |
-| ... | ... | ... |
-| **Final Credit Score** | | **670** |
-
-*Interpretation: A score of 670 places Customer A in the "Low Risk" tier, leading to automatic loan approval.*
+### Population Default Rate
+The overall default rate highlights class imbalance and motivates the use of
+proper evaluation metrics beyond accuracy.
 
 ---
 
-## Model Comparison Results
+## PD Modeling with WOE / IV
 
-### Champion Model: Logistic Regression (Scorecard)
-* **Performance:** Superior stability and generalization on the test set.
-* **Why it worked:** The success of this model confirms that **forcing monotonicity via WOE binning** creates a highly robust predictor for credit risk data, often surpassing complex non-linear models which may overfit noise in smaller datasets (1,000 observations).
+WOE transformation and IV-based feature selection are applied to ensure
+**interpretability and stability**, consistent with traditional scorecard modeling.
 
-### Benchmark Model: XGBoost
-* **Approach:** Gradient Boosting optimized with **Optuna** for hyperparameter tuning.
-* **Result:** Despite extensive tuning, XGBoost struggled to significantly outperform the linear model. This validates the industry standard of preferring interpretable linear models when strong feature engineering (WOE) is applied.
+### Information Value (Top Features)
+Features are ranked by IV to assess their individual predictive contribution.
+
+![Information Value Plot](images/IV_ranking.png)
+
+### Model Performance (ROC – Test Set)
+Logistic Regression and XGBoost are compared on the held-out test set.
+
+![ROC Curve Comparison](images/ROC_curve.png)
+
+ROC and KS statistics evaluate ranking performance only.
+Final credit decisions and monitoring rely on calibrated PDs rather than raw scores.
+
+**Observed results (test set):**
+- Logistic Regression AUC ≈ **0.80**, KS ≈ **0.51**
+- XGBoost AUC ≈ **0.77**, KS ≈ **0.43**
+
+Despite higher training performance, XGBoost exhibits stronger overfitting
+and less stable rank-ordering on the test set,
+while Logistic Regression provides more **robust generalization,
+calibration stability, and interpretability**.
 
 ---
 
-## Tech Stack
+## Model Validation & Calibration
 
-* **Language:** Python 3.x
-* **Core Libraries:** `Pandas`, `NumPy`, `Matplotlib`, `Seaborn`
-* **Modeling & ML:**
-    * `Scikit-learn` (Logistic Regression)
-    * `XGBoost` (Gradient Boosting)
-    * `Optuna` (Hyperparameter Optimization)
-    * `Scorecardpy` (WOE Binning & Scaling)
+Model validation focuses on **probability quality and deployment readiness**,
+not just rank-ordering. Brier score measures overall probability accuracy,
+while Expected Calibration Error (ECE) captures bin-level miscalibration
+between predicted PDs and observed default rates.
+
+### Calibration Curves (Reliability Plots)
+Predicted PDs are calibrated using sigmoid (Platt) scaling and evaluated
+against observed default frequencies.
+
+![Calibration Curves](images/Calibration_curve.png)
+
+
+### Key Validation Results (Test Set, Calibrated)
+
+- **Logistic Regression**:  
+  AUC ≈ **0.81**, Brier ≈ **0.15**, ECE ≈ **0.07**  
+  → Strong calibration and stable generalization
+
+- **XGBoost**:  
+  AUC ≈ **0.78**, Brier ≈ **0.16**, ECE ≈ **0.06**  
+  → Competitive discrimination, but weaker stability
+
+### Population Stability Index (PSI)
+PSI is used to assess distributional stability between training and test samples.
+
+![PSI Plot](images/PSI.png)
+PSI values are computed between training and test splits within the same dataset.
+They should be interpreted as relative stability diagnostics rather than
+full production-level population monitoring.
+
+Low-to-moderate PSI values indicate no severe population shift in this experiment.
+
+### Anomaly Analysis (Supplementary)
+This analysis is supplementary and does not affect model estimation.
+It is intended to highlight segments with elevated risk concentration.
+
+An Isolation Forest is applied to identify anomalous observations.
+Anomalous segments exhibit substantially higher default rates.
+
+![Anomaly Default Rate Comparison](images/Anomaly.png)
 
 ---
 
+## Conclusion
 
-### License
-This project is open-sourced under the MIT License.
+This project shows that in a classical credit scorecard setting, interpretability,
+probability calibration, and stability diagnostics are as important as discrimination
+metrics such as AUC or KS.
+
+WOE-based Logistic Regression delivers competitive ranking performance while maintaining
+transparent structure, stable generalization, and well-behaved probability estimates.
+More complex models, such as gradient boosting, may achieve stronger in-sample results,
+but tend to exhibit weaker robustness and calibration consistency in this setting.
+
+Overall, the results emphasize that robust validation and probability quality should guide
+model selection in credit risk modeling rather than marginal gains in headline metrics.
+
+---
+
+## Limitations
+
+- The analysis is based on a single, relatively small and low-dimensional dataset.
+- No temporal or macroeconomic covariates are included, limiting stress or regime-shift analysis.
+- Stability diagnostics (e.g., PSI) are evaluated within a single dataset split
+  and do not fully represent production monitoring scenarios.
