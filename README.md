@@ -16,12 +16,12 @@ of the credit risk modeling lifecycle:
 
 - `Credit_Fundamentals.ipynb`: credit fundamentals and exploratory analysis  
 - `PD_Modeling.ipynb`: WOE/IV-based PD modeling and model comparison  
-- `Model_Validation_Final.ipynb`: calibration, stability, and validation diagnostics  
+- `Model_Validation.ipynb`: calibration, stability, and validation diagnostics  
 
 Recommended execution order:
 1. Credit_Fundamentals.ipynb  
 2. PD_Modeling.ipynb  
-3. Model_Validation_Final.ipynb
+3. Model_Validation.ipynb
 ---
 
 ## Data
